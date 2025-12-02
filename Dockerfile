@@ -1,22 +1,18 @@
-# Use official JDK
-FROM eclipse-temurin:17-jdk
-
-# Set working directory
+# ---- Build Stage ----
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy Maven wrapper + pom.xml
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
+COPY . .
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline
+RUN chmod +x mvnw
+RUN ./mvnw -q -DskipTests package
 
-# Copy source code
-COPY src src
+# ---- Runtime Stage ----
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
 
-# Build jar
-RUN ./mvnw clean package -DskipTests
+COPY --from=build /app/target/*.jar app.jar
 
-# Run the jar
-CMD ["java", "-jar", "target/bug-tracker-0.0.1-SNAPSHOT.jar"]
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","app.jar"]
+
